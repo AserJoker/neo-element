@@ -1,6 +1,6 @@
-import { createElement, JSX, useEffect } from "react";
+import { JSX, useCallback, useMemo } from "react";
 import { IComputedType, IValueType } from "./type";
-import { IAction } from "./store";
+import { IAction, IStore } from "./store";
 import { useStore } from "./store-react";
 
 type IEmitParameters<E, K extends keyof E> = E[K] extends undefined
@@ -9,14 +9,14 @@ type IEmitParameters<E, K extends keyof E> = E[K] extends undefined
 
 export interface IComponent<
   P = any,
-  S extends Record<string, unknown> = {},
-  A extends IAction<S> = IAction<S>,
+  S extends Record<string, unknown> = any,
+  A extends IAction<S> = any,
   SS = any,
-  E = any
+  E = any,
 > {
   name: string;
   props?: P;
-  store: ReturnType<typeof useStore<S, A>>;
+  store: IStore<S, A>;
   slots?: SS;
   emits?: E;
   render(
@@ -27,89 +27,68 @@ export interface IComponent<
       [key in keyof SS]: (
         props: { [kk in keyof SS[key]]: IComputedType<SS[key][kk]> },
         slots?: Record<string, Function>
-      ) => JSX.Element | null;
+      ) => JSX.Element | null | undefined;
     }
-  ): JSX.Element | null;
+  ): JSX.Element | null | undefined;
 }
+const components: Record<string, IComponent> = {};
 export const defineComponent = <
   P extends Record<string, IValueType>,
   S extends Record<string, unknown>,
   A extends IAction<S>,
   SS extends Record<string, Record<string, IValueType>>,
-  E extends Record<string, IValueType | undefined>
+  E extends Record<string, IValueType | undefined>,
 >(
   component: IComponent<P, S, A, SS, E>
-) => component;
+) => {
+  components[component.name] = component as IComponent;
+  return component;
+};
 
 export interface ISlot {
-  (props: any, slots?: Record<string, ISlot>): JSX.Element | null;
+  (props: any, slots?: Record<string, ISlot>): JSX.Element | null | undefined;
 }
 
 export interface IComponentElement {
-  component: IComponent<any, any, Record<string, any>>;
-  props: Record<string, unknown>;
+  component?: IComponent<any, any, Record<string, any>>;
+  props?: Record<string, unknown>;
   slots?: Record<string, ISlot>;
   on?: Record<string, Function>;
 }
-export const render = (element: IComponentElement) => {
-  const slots: Record<string, Function> = {};
-  if (element.component.slots) {
-    Object.keys(element.component.slots).forEach((key) => {
-      slots[key] = (
-        props: Record<string, unknown>,
-        slots?: Record<string, ISlot>
-      ) => {
-        return element.slots?.[key]?.(props, slots ?? {});
-      };
-    });
+export const render = ({
+  component,
+  props = {},
+  slots = {},
+  on = {},
+}: IComponentElement) => {
+  if (!component) {
+    return null;
   }
-  const emit = (event: string, payload?: any) => {
-    element.on?.[event]?.(payload);
-  };
-  return element.component.render(
-    element.component.store,
-    element.props as any,
-    emit as any,
-    slots as any
-  );
-};
-
-export const Counter = defineComponent({
-  name: "counter",
-  props: {},
-  slots: {
-    default: {},
-  },
-  store: useStore({
-    state: { count: 0 },
-    action: {
-      addCount(ctx) {
-        ctx.state.count++;
-      },
+  const store = useMemo(() => useStore(component.store), [component]);
+  const vslots = useMemo(() => {
+    const vslots: Record<string, Function> = {};
+    if (component.slots) {
+      Object.keys(component.slots).forEach((key) => {
+        vslots[key] = (
+          props: Record<string, unknown>,
+          s?: Record<string, ISlot>
+        ) => slots?.[key]?.(props, s ?? {});
+      });
+    }
+    return vslots;
+  }, [slots, component]);
+  const emit = useCallback(
+    (event: string, payload?: any) => {
+      on?.[event]?.(payload);
     },
-  }),
-  emits: {
-    change: { type: "number" },
-  },
-  render(store, _props, emit, slots) {
-    const count = store.useField<number>("count");
-    useEffect(() => {
-      emit("change", count);
-    }, [count]);
-    return createElement(
-      "button",
-      { onClick: () => store.useAction("addCount")() },
-      slots?.default({}, { default: () => count })
-    );
-  },
-});
-export const Box = defineComponent({
-  name: "box",
-  slots: {
-    default: {},
-  },
-  store: useStore(),
-  render(_store, _props, _emit, slots) {
-    return slots?.default({}) ?? null;
-  },
-});
+    [on]
+  );
+  return component.render(store, props as any, emit as any, vslots as any);
+};
+export const Component: React.FC<{
+  component: string;
+  props?: Record<string, unknown>;
+  slots?: Record<string, ISlot>;
+  on?: Record<string, Function>;
+}> = ({ component, props = {}, slots = {}, on = {} }) =>
+  render({ component: components[component], props, slots, on });

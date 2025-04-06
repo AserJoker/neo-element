@@ -1,30 +1,62 @@
+import { useState } from "react";
 import "./App.css";
-import { Box, Counter, IComponent, ISlot, render } from "./engine/component";
+import { Component, defineComponent } from "./engine/component";
 
-const components: Record<string, IComponent> = { Counter, Box };
-
-const Component: React.FC<{
-  component: string;
-  props: Record<string, unknown>;
-  slots?: Record<string, ISlot>;
-  on?: Record<string, Function>;
-}> = ({ component, props, slots, on }) => {
-  return render({ component: components[component], props, slots, on });
-};
+defineComponent({
+  name: "Counter",
+  props: {},
+  store: {
+    state: {
+      count: 0,
+    },
+    action: {
+      addCount(ctx) {
+        ctx.state.count++;
+      },
+    },
+  },
+  slots: { default: {} },
+  emits: { change: { type: "number" } },
+  render(store, _props, _emit, slots) {
+    const count = store.useField<number>("count");
+    return (
+      <button onClick={store.useAction("addCount")}>
+        {slots?.default({}, { default: () => count })}
+      </button>
+    );
+  },
+});
+defineComponent({
+  name: "Box",
+  props: {},
+  store: { state: {}, action: {} },
+  slots: { default: {} },
+  render(_store, _props, _emit, slots) {
+    return slots?.default({});
+  },
+});
 
 function App() {
+  const [visible, setVisible] = useState(true);
   return (
     <>
-      <Component
-        component="Counter"
-        props={{}}
-        on={{}}
-        slots={{
-          default: (props, slots) => (
-            <Component component="Box" on={{}} props={props} slots={slots} />
-          ),
+      {visible && (
+        <Component
+          component="Counter"
+          props={{}}
+          on={{}}
+          slots={{
+            default: (props, slots) => (
+              <Component component="Box" on={{}} props={props} slots={slots} />
+            ),
+          }}
+        />
+      )}
+      <button
+        onClick={() => {
+          setVisible(!visible);
         }}
-      />
+      >{`${visible}`}</button>
     </>
   );
 }
