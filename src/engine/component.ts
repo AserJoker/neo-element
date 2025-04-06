@@ -86,9 +86,15 @@ export const render = ({
   return component.render(store, props as any, emit as any, vslots as any);
 };
 export const Component: React.FC<{
-  component: string;
+  component: string | IComponent;
   props?: Record<string, unknown>;
   slots?: Record<string, ISlot>;
   on?: Record<string, Function>;
 }> = ({ component, props = {}, slots = {}, on = {} }) =>
-  render({ component: components[component], props, slots, on });
+  render({
+    component:
+      typeof component === "string" ? components[component] : component,
+    props,
+    slots,
+    on,
+  });

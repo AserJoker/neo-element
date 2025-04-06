@@ -2,7 +2,7 @@ import { useState } from "react";
 import "./App.css";
 import { Component, defineComponent } from "./engine/component";
 
-defineComponent({
+const Counter = defineComponent({
   name: "Counter",
   props: {},
   store: {
@@ -26,7 +26,7 @@ defineComponent({
     );
   },
 });
-defineComponent({
+const Box = defineComponent({
   name: "Box",
   props: {},
   store: { state: {}, action: {} },
@@ -42,12 +42,12 @@ function App() {
     <>
       {visible && (
         <Component
-          component="Counter"
+          component={Counter}
           props={{}}
           on={{}}
           slots={{
             default: (props, slots) => (
-              <Component component="Box" on={{}} props={props} slots={slots} />
+              <Component component={Box} on={{}} props={props} slots={slots} />
             ),
           }}
         />
