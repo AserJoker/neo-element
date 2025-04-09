@@ -1,3 +1,7 @@
+/* eslint-disable react-refresh/only-export-components */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/rules-of-hooks */
+/* eslint-disable @typescript-eslint/no-unsafe-function-type */
 import { createElement, ReactNode, useCallback, useMemo } from "react";
 import { IComputedType, IValueType, Unpack } from "./type";
 import { IAction, IStore } from "./store";

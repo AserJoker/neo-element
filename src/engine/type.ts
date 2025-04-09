@@ -31,7 +31,7 @@ export interface IBooleanValueType extends IBaseValueType<"boolean"> {
 }
 
 export interface IObjectValueType<
-  Prop extends Record<string, IBaseValueType> = {},
+  Prop extends Record<string, IBaseValueType> = Record<string, IBaseValueType>,
 > extends IBaseValueType<"object"> {
   properties: Prop;
 }

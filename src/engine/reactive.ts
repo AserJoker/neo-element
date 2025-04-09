@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-function-type */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export const reactive = <T>(target: T, cb: (key: string) => void): T => {
   if (typeof target === "object" && target) {
     return new Proxy(target, {

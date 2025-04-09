@@ -20,9 +20,10 @@ defineComponent({
   emits: { change: { type: "number" } },
   render(store, _props, emit, slots) {
     const count = store.useField<number>("count");
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     useEffect(() => {
       emit("change", count);
-    }, [count]);
+    }, [count, emit]);
     return (
       <button onClick={store.useAction("addCount")}>
         {slots?.text({ value: count })}
@@ -40,28 +41,47 @@ defineComponent({
   },
   store: { state: {}, action: {} },
   slots: { default: {} },
-  render(_store, props, _emit, _slots) {
+  render(_store, props) {
     return `${props.data}`;
   },
 });
 defineElementComponent({
   name: "Demo",
   store: {
-    state: {},
-    action: {},
+    state: { c: 0 },
+    action: {
+      change(_, count: number) {
+        _.state.c = count;
+      },
+    },
   },
   props: {
     value: {
       type: "string",
     },
   },
+  emits: { count: { type: "number" } },
   slots: { default: {} },
   node: {
-    component: "slot",
+    component: "div",
     children: [
       {
+        component: "Counter",
+        on: { change: "action.change" },
+        children: [
+          {
+            component: "Text",
+            slot: "text",
+            props: { data: "props.value" },
+            key: "counter.text",
+          },
+        ],
+        key: "counter",
+      },
+      {
         component: "Text",
-        props: { data: "props.value" },
+        props: { data: "state.c" },
+        key: "text",
       },
     ],
   },
@@ -81,7 +101,7 @@ function App() {
   const [visible, setVisible] = useState(true);
   return (
     <>
-      {visible && <Component component={"Box"} />}
+      {visible && <Component component={"Demo"} />}
       <button
         onClick={() => {
           setVisible(!visible);

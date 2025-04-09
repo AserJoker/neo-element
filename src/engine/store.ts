@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { clone } from "./clone";
 import { get } from "./get";
 import { reactive } from "./reactive";
@@ -10,7 +11,7 @@ export interface IAction<S> {
 }
 export interface IStore<
   S extends Record<string, unknown>,
-  A extends IAction<S>
+  A extends IAction<S>,
 > {
   state?: S;
   action?: A;
@@ -25,7 +26,7 @@ type RemoveContextParameters<F> = F extends (ctx: any, ...args: infer P) => any
 
 export const createStore = <
   S extends Record<string, unknown>,
-  A extends IAction<S>
+  A extends IAction<S>,
 >(
   store: IStore<S, A> = {}
 ) => {
@@ -74,7 +75,7 @@ export const createStore = <
     } as RemoveContext<A[K]>;
     reactiveActions[key] = fn;
   });
-  const useRef = <T>(key: string, cb: (val: T) => void) => {
+  const ref = <T>(key: string, cb: (val: T) => void) => {
     const effect = () => cb(get(instance.raw, key) as T);
     effect();
     return {
@@ -91,5 +92,5 @@ export const createStore = <
   const current = <T>(key: string) => {
     return Reflect.get(instance.raw, key) as T;
   };
-  return { useRef, useAction, reset, watch, unwatch, current };
+  return { ref, useAction, reset, watch, unwatch, current };
 };
