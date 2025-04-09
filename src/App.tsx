@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 import { Component, defineComponent } from "./engine/component";
+import { defineElementComponent } from "./engine/node";
 
-const Counter = defineComponent({
+defineComponent({
   name: "Counter",
   props: {},
   store: {
@@ -15,24 +16,64 @@ const Counter = defineComponent({
       },
     },
   },
-  slots: { default: {} },
+  slots: { text: { value: { type: "number", optional: true } } },
   emits: { change: { type: "number" } },
-  render(store, _props, _emit, slots) {
+  render(store, _props, emit, slots) {
     const count = store.useField<number>("count");
+    useEffect(() => {
+      emit("change", count);
+    }, [count]);
     return (
       <button onClick={store.useAction("addCount")}>
-        {slots?.default({}, { default: () => count })}
+        {slots?.text({ value: count })}
       </button>
     );
   },
 });
-const Box = defineComponent({
-  name: "Box",
-  props: {},
+defineComponent({
+  name: "Text",
+  props: {
+    data: {
+      type: "number",
+      optional: true,
+    },
+  },
   store: { state: {}, action: {} },
   slots: { default: {} },
-  render(_store, _props, _emit, slots) {
-    return slots?.default({});
+  render(_store, props, _emit, _slots) {
+    return `${props.data}`;
+  },
+});
+defineElementComponent({
+  name: "Demo",
+  store: {
+    state: {},
+    action: {},
+  },
+  props: {
+    value: {
+      type: "string",
+    },
+  },
+  slots: { default: {} },
+  node: {
+    component: "slot",
+    children: [
+      {
+        component: "Text",
+        props: { data: "props.value" },
+      },
+    ],
+  },
+});
+
+defineElementComponent({
+  name: "Box",
+  store: { state: {}, action: {} },
+  slots: { default: {} },
+  node: {
+    component: "div",
+    children: ["hello world"],
   },
 });
 
@@ -40,18 +81,7 @@ function App() {
   const [visible, setVisible] = useState(true);
   return (
     <>
-      {visible && (
-        <Component
-          component={Counter}
-          props={{}}
-          on={{}}
-          slots={{
-            default: (props, slots) => (
-              <Component component={Box} on={{}} props={props} slots={slots} />
-            ),
-          }}
-        />
-      )}
+      {visible && <Component component={"Box"} />}
       <button
         onClick={() => {
           setVisible(!visible);

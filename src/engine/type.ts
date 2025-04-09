@@ -31,7 +31,7 @@ export interface IBooleanValueType extends IBaseValueType<"boolean"> {
 }
 
 export interface IObjectValueType<
-  Prop extends Record<string, IBaseValueType> = {}
+  Prop extends Record<string, IBaseValueType> = {},
 > extends IBaseValueType<"object"> {
   properties: Prop;
 }
@@ -66,43 +66,46 @@ export type IValueType =
   | IRecordValueType
   | IUnionValueType;
 
-export type IComputedType<T> = T extends IStringValueType
-  ? T["optional"] extends true
-    ? string | undefined
-    : string
+export type IBaseComputedType<T> = T extends IStringValueType
+  ? string
   : T extends INumberValueType
-  ? T["optional"] extends true
-    ? number | undefined
-    : number
-  : T extends IBooleanValueType
-  ? T["optional"] extends true
-    ? boolean | undefined
-    : boolean
-  : T extends IObjectValueType<infer Prop>
-  ? T["optional"] extends true
-    ? Unpack<Prop> | undefined
-    : Unpack<Prop>
-  : T extends IArrayValueType<infer Item>
-  ? T["optional"] extends true
-    ? IComputedType<Item>[] | undefined
-    : IComputedType<Item>[]
-  : T extends ITupleValueType<infer Item>
-  ? T["optional"] extends true
-    ? Unpack<Item> | undefined
-    : Unpack<Item>
-  : T extends IRecordValueType<infer F>
-  ? T["optional"] extends true
-    ? Record<string, IComputedType<F>> | undefined
-    : Record<string, IComputedType<F>>
-  : T extends IUnionValueType<infer Item>
-  ? T["optional"] extends true
-    ? UnpackArr<Unpack<Item>> | undefined
-    : UnpackArr<Unpack<Item>>
-  : never;
+    ? number
+    : T extends IBooleanValueType
+      ? boolean
+      : T extends IObjectValueType<infer Prop>
+        ? Unpack<Prop>
+        : T extends IArrayValueType<infer Item>
+          ? IComputedType<Item>[]
+          : T extends ITupleValueType<infer Item>
+            ? Unpack<Item>
+            : T extends IRecordValueType<infer F>
+              ? Record<string, IComputedType<F>>
+              : T extends IUnionValueType<infer Item>
+                ? UnpackArr<Unpack<Item>>
+                : never;
 
-type Unpack<T> = {
-  [key in keyof T]: IComputedType<T[key]>;
+export type IComputedType<T> = T extends IBaseValueType
+  ? T["optional"] extends true
+    ? IBaseComputedType<T> | undefined
+    : IBaseComputedType<T>
+  : never;
+type UnpackBase<T> = {
+  [key in keyof T as T[key] extends IBaseValueType
+    ? T[key]["optional"] extends true
+      ? never
+      : key
+    : never]: IBaseComputedType<T[key]>;
 };
+type UnpackOptional<T> = {
+  [key in keyof T as T[key] extends IBaseValueType
+    ? T[key]["optional"] extends true
+      ? key
+      : never
+    : never]?: IBaseComputedType<T[key]>;
+};
+
+export type Unpack<T> = UnpackBase<T> & UnpackOptional<T>;
+
 type UnpackArr<T> = T extends Array<infer K> ? K : never;
 
 export const defineString = <T extends IStringValueType>(type: T) => type;
@@ -113,7 +116,7 @@ export const defineBoolean = <T extends IBooleanValueType>(type: T) => type;
 
 export const defineObject = <
   P extends Record<string, IValueType>,
-  T extends IObjectValueType<P>
+  T extends IObjectValueType<P>,
 >(
   type: T
 ) => type;
@@ -123,21 +126,21 @@ export const defineArray = <I extends IValueType, T extends IArrayValueType<I>>(
 
 export const defineTuple = <
   I extends IBaseValueType[],
-  T extends ITupleValueType<[...I]>
+  T extends ITupleValueType<[...I]>,
 >(
   type: T
 ) => type;
 
 export const defineRecord = <
   F extends IBaseValueType,
-  T extends IRecordValueType<F>
+  T extends IRecordValueType<F>,
 >(
   type: T
 ) => type;
 
 export const defineUnion = <
   U extends IBaseValueType[],
-  T extends IUnionValueType<U>
+  T extends IUnionValueType<U>,
 >(
   type: T
 ) => type;

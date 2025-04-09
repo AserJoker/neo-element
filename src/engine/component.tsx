@@ -1,11 +1,25 @@
-import { JSX, useCallback, useMemo } from "react";
-import { IComputedType, IValueType } from "./type";
+import { createElement, ReactNode, useCallback, useMemo } from "react";
+import { IComputedType, IValueType, Unpack } from "./type";
 import { IAction, IStore } from "./store";
 import { useStore } from "./store-react";
 
 type IEmitParameters<E, K extends keyof E> = E[K] extends undefined
   ? []
   : [IComputedType<E[K]>];
+
+export type ISlots<SS> = {
+  [key in keyof SS]: (
+    props: Unpack<SS[key]>,
+    slots?: Record<string, Function>
+  ) => ReactNode;
+};
+
+export type IEmit<E> = <K extends keyof E>(
+  key: K,
+  ...args: IEmitParameters<E, K>
+) => void;
+
+export type IProp<P> = Unpack<P>;
 
 export interface IComponent<
   P = any,
@@ -21,15 +35,10 @@ export interface IComponent<
   emits?: E;
   render(
     store: ReturnType<typeof useStore<S, A>>,
-    props: { [key in keyof P]: IComputedType<P[key]> },
-    emit: <K extends keyof E>(key: K, ...args: IEmitParameters<E, K>) => void,
-    slots?: {
-      [key in keyof SS]: (
-        props: { [kk in keyof SS[key]]: IComputedType<SS[key][kk]> },
-        slots?: Record<string, Function>
-      ) => JSX.Element | null | undefined;
-    }
-  ): JSX.Element | null | undefined;
+    props: IProp<P>,
+    emit: IEmit<E>,
+    slots: ISlots<SS>
+  ): ReactNode;
 }
 const components: Record<string, IComponent> = {};
 export const defineComponent = <
@@ -46,23 +55,32 @@ export const defineComponent = <
 };
 
 export interface ISlot {
-  (props: any, slots?: Record<string, ISlot>): JSX.Element | null | undefined;
+  (props: any, slots?: Record<string, ISlot>): ReactNode;
 }
 
-export interface IComponentElement {
-  component?: IComponent<any, any, Record<string, any>>;
+interface IComponentElement {
+  component?: IComponent<any, any, Record<string, any>> | string;
   props?: Record<string, unknown>;
   slots?: Record<string, ISlot>;
   on?: Record<string, Function>;
+  key: string;
 }
-export const render = ({
+
+type Remove<T, K extends keyof T> = {
+  [key in keyof T as key extends K ? never : key]: T[key];
+};
+
+const renderComponent = ({
   component,
   props = {},
   slots = {},
   on = {},
-}: IComponentElement) => {
+}: Remove<IComponentElement, "key">) => {
   if (!component) {
     return null;
+  }
+  if (typeof component === "string") {
+    return createElement(component, props, slots.default?.({}));
   }
   const store = useMemo(() => useStore(component.store), [component]);
   const vslots = useMemo(() => {
@@ -71,8 +89,10 @@ export const render = ({
       Object.keys(component.slots).forEach((key) => {
         vslots[key] = (
           props: Record<string, unknown>,
-          s?: Record<string, ISlot>
-        ) => slots?.[key]?.(props, s ?? {});
+          s: Record<string, ISlot> = {}
+        ) => {
+          return slots?.[key]?.(props, s ?? {});
+        };
       });
     }
     return vslots;
@@ -86,14 +106,16 @@ export const render = ({
   return component.render(store, props as any, emit as any, vslots as any);
 };
 export const Component: React.FC<{
-  component: string | IComponent;
+  component?: string | IComponent;
   props?: Record<string, unknown>;
   slots?: Record<string, ISlot>;
   on?: Record<string, Function>;
 }> = ({ component, props = {}, slots = {}, on = {} }) =>
-  render({
+  renderComponent({
     component:
-      typeof component === "string" ? components[component] : component,
+      typeof component === "string"
+        ? (components[component] ?? component)
+        : component,
     props,
     slots,
     on,
