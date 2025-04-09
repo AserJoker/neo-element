@@ -5,7 +5,7 @@ import { IAction } from "./store";
 import { useStore } from "./store-react";
 import { IValueType } from "./type";
 import { get } from "./get";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 export interface INode {
   component?: string;
@@ -30,17 +30,18 @@ export interface IElementComponent<
 const renderComponent = (
   state: Record<string, unknown>,
   node: INode,
-  states: Record<string, string>
+  states: Record<string, string>,
+  effects: Record<string, string>
 ) => {
   const customStates = Object.keys(states);
-  const on = node.on ?? {};
-  const props = node.props ?? {};
   const renderNode = (
     node: INode,
     ctx: { props: Record<string, unknown>; state: Record<string, unknown> },
     slots: Record<string, Function>
   ) => {
     const nodeProps: Record<string, unknown> = {};
+    const on = node.on ?? {};
+    const props = node.props ?? {};
     const vslots: Record<string, (INode | string)[]> = {};
     const children = node.children ?? [];
     children.forEach((c) => {
@@ -139,6 +140,15 @@ const renderComponent = (
         context.state[key] = store.useField(key);
       }
     });
+    Object.keys(effects).forEach((ref) => {
+      useEffect(() => {
+        const callback = get<Function>(context, effects[ref]);
+        if (callback) {
+          callback(get(context, ref));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [get(context, ref)]);
+    });
     return renderNode(node, context, slots);
   };
 };
@@ -150,11 +160,12 @@ export const defineElementComponent = <
   E extends Record<string, IValueType | undefined>,
 >({
   node,
+  effects = {},
   states = {},
   ...component
 }: Omit<IElementComponent<P, S, A, SS, E>, "render">) => {
   return defineComponent({
     ...component,
-    render: renderComponent(component.store.state ?? {}, node, states),
+    render: renderComponent(component.store.state ?? {}, node, states, effects),
   });
 };

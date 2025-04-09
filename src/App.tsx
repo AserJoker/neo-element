@@ -62,6 +62,7 @@ defineElementComponent({
   },
   emits: { count: { type: "number" } },
   slots: { default: {} },
+  effects: { "state.c": "emit.count" },
   node: {
     component: "div",
     children: [
@@ -87,21 +88,20 @@ defineElementComponent({
   },
 });
 
-defineElementComponent({
-  name: "Box",
-  store: { state: {}, action: {} },
-  slots: { default: {} },
-  node: {
-    component: "div",
-    children: ["hello world"],
-  },
-});
-
 function App() {
   const [visible, setVisible] = useState(true);
   return (
     <>
-      {visible && <Component component={"Demo"} />}
+      {visible && (
+        <Component
+          component={"Demo"}
+          on={{
+            count: (value: number) => {
+              console.log(value);
+            },
+          }}
+        />
+      )}
       <button
         onClick={() => {
           setVisible(!visible);
