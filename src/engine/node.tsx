@@ -25,6 +25,7 @@ export interface IElementComponent<
 > extends IComponent<P, S, A, SS, E> {
   node: INode;
   states?: Record<string, string>;
+  effects?: Record<string, string>;
 }
 const renderComponent = (
   state: Record<string, unknown>,
@@ -32,18 +33,14 @@ const renderComponent = (
   states: Record<string, string>
 ) => {
   const customStates = Object.keys(states);
-
+  const on = node.on ?? {};
+  const props = node.props ?? {};
   const renderNode = (
     node: INode,
     ctx: { props: Record<string, unknown>; state: Record<string, unknown> },
     slots: Record<string, Function>
   ) => {
     const nodeProps: Record<string, unknown> = {};
-    const props = node.props ?? {};
-    Object.keys(props).forEach(
-      (key) => (nodeProps[key] = get(ctx, props[key]))
-    );
-    const nodeSlots: Record<string, ISlot> = {};
     const vslots: Record<string, (INode | string)[]> = {};
     const children = node.children ?? [];
     children.forEach((c) => {
@@ -60,6 +57,10 @@ const renderComponent = (
         vslots[slot].push(c);
       }
     });
+    Object.keys(props).forEach(
+      (key) => (nodeProps[key] = get(ctx, props[key]))
+    );
+    const nodeSlots: Record<string, ISlot> = {};
     Object.keys(vslots).forEach((slot) => {
       nodeSlots[slot] = (props) => {
         const nodes = vslots[slot];
@@ -82,7 +83,6 @@ const renderComponent = (
       };
     });
     const nodeOn: Record<string, Function> = {};
-    const on = node.on ?? {};
     Object.keys(on).forEach((event) => {
       const fn = get<Function>(ctx, on[event]);
       if (fn) {
