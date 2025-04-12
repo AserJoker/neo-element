@@ -9,25 +9,42 @@ defineComponent({
   store: {
     state: {
       count: 0,
+      data: 0,
+    },
+    getter: {
+      nextCount(ctx) {
+        if (ctx.state.count % 2 === 0) {
+          return ctx.state.count + 1;
+        } else {
+          return ctx.state.data;
+        }
+      },
     },
     action: {
       addCount(ctx) {
         ctx.state.count++;
+      },
+      addData(ctx) {
+        ctx.state.data = 100;
       },
     },
   },
   slots: { text: { value: { type: "number", optional: true } } },
   emits: { change: { type: "number" } },
   render(store, _props, emit, slots) {
-    const count = store.useField<number>("count");
+    // const count = store.useField<number>("count");
+    const count = store.useGetter("nextCount");
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useEffect(() => {
       emit("change", count);
     }, [count, emit]);
     return (
-      <button onClick={store.useAction("addCount")}>
-        {slots?.text({ value: count })}
-      </button>
+      <>
+        <button onClick={store.useAction("addCount")}>
+          {slots?.text({ value: count })}
+        </button>
+        <button onClick={store.useAction("addData")}>add data</button>
+      </>
     );
   },
 });

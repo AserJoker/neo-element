@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-function-type */
 import { createElement, ReactNode, useCallback, useMemo } from "react";
 import { IComputedType, IValueType, Unpack } from "./type";
-import { IAction, IStore } from "./store";
+import { IAction, IGetter, IStore } from "./store";
 import { useStore } from "./store-react";
 
 type IEmitParameters<E, K extends keyof E> = E[K] extends undefined
@@ -29,16 +29,17 @@ export interface IComponent<
   P = any,
   S extends Record<string, unknown> = any,
   A extends IAction<S> = any,
+  G extends IGetter<S> = any,
   SS = any,
   E = any,
 > {
   name: string;
   props?: P;
-  store: IStore<S, A>;
+  store: IStore<S, A, G>;
   slots?: SS;
   emits?: E;
   render(
-    store: ReturnType<typeof useStore<S, A>>,
+    store: ReturnType<typeof useStore<S, A, G>>,
     props: IProp<P>,
     emit: IEmit<E>,
     slots: ISlots<SS>
@@ -49,10 +50,11 @@ export const defineComponent = <
   P extends Record<string, IValueType>,
   S extends Record<string, unknown>,
   A extends IAction<S>,
+  G extends IGetter<S>,
   SS extends Record<string, Record<string, IValueType>>,
   E extends Record<string, IValueType | undefined>,
 >(
-  component: IComponent<P, S, A, SS, E>
+  component: IComponent<P, S, A, G, SS, E>
 ) => {
   components[component.name] = component as IComponent;
   return component;

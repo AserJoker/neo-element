@@ -1,13 +1,19 @@
 /* eslint-disable @typescript-eslint/no-unsafe-function-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export const reactive = <T>(target: T, cb: (key: string) => void): T => {
+export const reactive = <T>(
+  target: T,
+  cb: (key: string) => void,
+  dep: (key: string) => void
+): T => {
   if (typeof target === "object" && target) {
     return new Proxy(target, {
       get(target, p) {
         const val = Reflect.get(target, p);
         if (typeof p === "string") {
-          const result = reactive(val, (field) =>
-            cb(`${p}${field ? `.${field}` : ""}`)
+          const result = reactive(
+            val,
+            (field) => cb(`${p}${field ? `.${field}` : ""}`),
+            (field) => dep(`${p}${field ? `.${field}` : ""}`)
           );
           if (
             result === Array.prototype.push ||
@@ -24,6 +30,7 @@ export const reactive = <T>(target: T, cb: (key: string) => void): T => {
               return res;
             };
           }
+          dep(p);
           return result;
         }
         return val;

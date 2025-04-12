@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-function-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Component, defineComponent, IComponent, ISlot } from "./component";
-import { IAction } from "./store";
+import { IAction, IGetter } from "./store";
 import { useStore } from "./store-react";
 import { IValueType } from "./type";
 import { get } from "./get";
@@ -20,9 +20,10 @@ export interface IElementComponent<
   P = any,
   S extends Record<string, unknown> = any,
   A extends IAction<S> = any,
+  G extends IGetter<S> = any,
   SS = any,
   E = any,
-> extends IComponent<P, S, A, SS, E> {
+> extends IComponent<P, S, A, G, SS, E> {
   node: INode;
   states?: Record<string, string>;
   effects?: Record<string, string>;
@@ -104,7 +105,7 @@ const renderComponent = (
     );
   };
   return (
-    store: ReturnType<typeof useStore<any, any>>,
+    store: ReturnType<typeof useStore<any, any, any>>,
     props: Record<string, unknown>,
     emit: Function,
     slots: Record<string, ISlot>
@@ -123,7 +124,11 @@ const renderComponent = (
       [emit]
     );
     const actions = useMemo(
-      () => new Proxy({}, { get: (_, action) => store.useAction(action) }),
+      () =>
+        new Proxy(
+          {},
+          { get: (_, action) => store.useAction(action as string) }
+        ),
       [store]
     );
     const context = {
@@ -156,6 +161,7 @@ export const defineElementComponent = <
   P extends Record<string, IValueType>,
   S extends Record<string, unknown>,
   A extends IAction<S>,
+  G extends IGetter<S>,
   SS extends Record<string, Record<string, IValueType>>,
   E extends Record<string, IValueType | undefined>,
 >({
@@ -163,7 +169,7 @@ export const defineElementComponent = <
   effects = {},
   states = {},
   ...component
-}: Omit<IElementComponent<P, S, A, SS, E>, "render">) => {
+}: Omit<IElementComponent<P, S, A, G, SS, E>, "render">) => {
   return defineComponent({
     ...component,
     render: renderComponent(component.store.state ?? {}, node, states, effects),
