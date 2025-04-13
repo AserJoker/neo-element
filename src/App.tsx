@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 import { Component, defineComponent } from "./engine/component";
-import { defineElementComponent } from "./engine/node";
+import { defineElementComponent } from "./engine/element";
 
 defineComponent({
   name: "Counter",
@@ -90,7 +90,7 @@ defineElementComponent({
           {
             component: "Text",
             slot: "text",
-            props: { data: "props.value" },
+            props: { data: "slot.value" },
             key: "counter.text",
           },
         ],

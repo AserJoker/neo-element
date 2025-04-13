@@ -7,9 +7,9 @@ import { IValueType } from "./type";
 import { get } from "./get";
 import { useEffect, useMemo } from "react";
 
-export interface INode {
+export interface IElement {
   component?: string;
-  children?: (INode | string)[];
+  children?: (IElement | string)[];
   props?: Record<string, string>;
   on?: Record<string, string>;
   slot?: string;
@@ -24,26 +24,26 @@ export interface IElementComponent<
   SS = any,
   E = any,
 > extends IComponent<P, S, A, G, SS, E> {
-  node: INode;
+  node: IElement;
   states?: Record<string, string>;
   effects?: Record<string, string>;
 }
 const renderComponent = (
   state: Record<string, unknown>,
-  node: INode,
+  node: IElement,
   states: Record<string, string>,
   effects: Record<string, string>
 ) => {
   const customStates = Object.keys(states);
   const renderNode = (
-    node: INode,
+    node: IElement,
     ctx: { props: Record<string, unknown>; state: Record<string, unknown> },
     slots: Record<string, Function>
   ) => {
     const nodeProps: Record<string, unknown> = {};
     const on = node.on ?? {};
     const props = node.props ?? {};
-    const vslots: Record<string, (INode | string)[]> = {};
+    const vslots: Record<string, (IElement | string)[]> = {};
     const children = node.children ?? [];
     children.forEach((c) => {
       if (typeof c === "string") {
@@ -66,19 +66,14 @@ const renderComponent = (
     Object.keys(vslots).forEach((slot) => {
       nodeSlots[slot] = (props) => {
         const nodes = vslots[slot];
+        const context = {
+          ...ctx,
+          slot: props,
+        };
         return (
           <>
             {nodes.map((n) =>
-              typeof n === "string"
-                ? n
-                : renderNode(
-                    n,
-                    {
-                      ...ctx,
-                      props: { ...props, ...ctx.props },
-                    },
-                    slots
-                  )
+              typeof n === "string" ? n : renderNode(n, context, slots)
             )}
           </>
         );
